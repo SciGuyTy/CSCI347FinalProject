@@ -5,31 +5,88 @@ import numpy as np
 
 class Utilities:
     @classmethod
-    def lp_norm(cls, x1: np.array, deg: int = 2):
+    def lp_norm(cls, x1: np.array, p: int = 2) -> float:
+        """
+        Compute the L_p norm for a vector
+
+        Parameters
+        ----------
+        x1: np.array
+            The vector with which to compute the l_p norm for
+
+        p: int
+            The degree p of the norm (defaults to 2)
+
+        Returns
+        -------
+        A float representing the L_p norm
+        """
+
         norm = 0
 
+        # Sum the 'p'th power of each element in the vector
         for element in x1:
-            norm += element ** deg
+            norm += element ** p
 
-        return norm ** (1 / deg)
+        # Compute and return the L_p norm
+        return norm ** (1 / p)
 
     @classmethod
-    def lp_distance(cls, x1: np.array, x2: np.array, deg: int = 2) -> float:
+    def lp_distance(cls, x1: np.array, x2: np.array, p: int = 2) -> float:
+        """
+        Compute the L_p distance between two vectors
+
+        Parameters
+        ----------
+        x1: np.array
+            The first vector
+
+        x2: np.array
+            The second vector
+
+        p: int
+            The degree p of the distance computation (defaults to 2)
+
+        Returns
+        -------
+        A float representing the L_p distasnce between vectors x1 and x2
+        """
+
+        # Validate the shape of the input vectors
         if x1.shape != x2.shape:
             raise ValueError("x1 and x2 do not have the same shape")
 
         distance = 0
 
+        # Sum the 'p'th power of the pair-wise differences for each element in the vectors
         for index in range(len(x1)):
-            distance += (x1[index] - x2[index]) ** deg
+            distance += (x1[index] - x2[index]) ** p
 
-        return distance ** (1 / deg)
+        # Compute and return the L_p distance
+        return distance ** (1 / p)
 
     @classmethod
     def precision(cls, ground_truth: np.array, predictions: np.array) -> tuple[
         dict[int, float],
         float
     ]:
+        """
+        Compute the precision of a clustering
+
+        Parameters
+        ----------
+        ground_truth: np.array
+            The ground truth cluster assignment
+
+        predictions: np.array
+            The predicted cluster assignment
+
+        Returns
+        -------
+        A tuple whose first element is a dictionary containing the precision for each predicted cluster, and whose
+        second element is a float representing the average precision across all predicted clusters
+        """
+
         # Dict to store precision for each cluster
         cluster_precisions = {}
 
@@ -58,6 +115,23 @@ class Utilities:
         dict[int, float],
         float
     ]:
+        """
+        Compute the recall of a clustering
+
+        Parameters
+        ----------
+        ground_truth: np.array
+            The ground truth cluster assignment
+
+        predictions: np.array
+            The predicted cluster assignment
+
+        Returns
+        -------
+        A tuple whose first element is a dictionary containing the recall for each predicted cluster, and whose
+        second element is a float representing the average recall across all predicted clusters
+        """
+
         # Dict to store precision for each cluster
         cluster_recall = {}
 
@@ -68,20 +142,13 @@ class Utilities:
                                 assignment == cluster_id]
 
             # Get the number of predicted points belonging to the dominant ground-truth cluster
-            num_dominant_cluster = Counter(predicted_points).most_common()[0][1]
+            num_predicted_dominant_cluster = Counter(predicted_points).most_common()[0][1]
 
-            num_ground_truth_cluster = len([element for element in ground_truth if element == cluster_id])
+            # Get the number of total points belonging to the dominant ground-truth cluster
+            num_dominant_cluster = len([element for element in ground_truth if element == cluster_id])
 
-            # Get the number of predictions in the predicted cluster
-            # num_predictions = len(predicted_points)
-
-            recall = 0
-
-            if num_ground_truth_cluster != 0:
-                recall = num_dominant_cluster / num_ground_truth_cluster
-
-            # Compute and return the precision
-            cluster_recall[cluster_id] = recall
+            # Compute the recall
+            cluster_recall[cluster_id] = num_predicted_dominant_cluster / num_dominant_cluster
 
         # Compute the average precision across all clusters
         average_precision = np.average(list(cluster_recall.values()))
@@ -89,13 +156,33 @@ class Utilities:
         return cluster_recall, average_precision
 
     @classmethod
-    def f1_score(cls, prediction: np.array, ground_truth: np.array, ratio: int = 2) -> float:
-        if prediction.shape != ground_truth.shape:
+    def f_score(cls, ground_truth: np.array, predictions: np.array, beta: int = 2) -> float:
+        """
+        Compute the F_beta score for a clustering
+
+        Parameters
+        ----------
+        ground_truth: np.array
+            The ground truth cluster assignment
+
+        predictions: np.array
+            The predicted cluster assignment
+
+        beta: int
+            The beta value that determines the ratio of precision and recall in the resulting F score (defaults to 2)
+
+        Returns
+        -------
+        A float representing the F_beta score
+        """
+
+        # Validate the shape of the label assignments
+        if predictions.shape != ground_truth.shape:
             raise ValueError("prediction and ground_truth labels do not have the same shape")
 
-        precision = cls.precision(prediction, ground_truth)[1]
-        recall = cls.recall(prediction, ground_truth)[1]
+        # Compute the average precision and recall for these data
+        precision = cls.precision(predictions, ground_truth)[1]
+        recall = cls.recall(predictions, ground_truth)[1]
 
-        print(precision, recall)
-
-        return ratio * ((precision * recall) / (precision + recall))
+        # Compute and return the F_beta score
+        return beta * ((precision * recall) / (precision + recall))

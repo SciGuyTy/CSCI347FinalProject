@@ -1,9 +1,13 @@
 import numpy as np
+
 from utilities.Utilities import Utilities
+from algorithms.initialization.Random import Random
+from algorithms.initialization.InitializationMethod import InitializationMethod
 
 
 class KMeans:
-    def __init__(self, k: int, epsilon: float, initial_state: np.array = None):
+    def __init__(self, k: int, epsilon: float, initialization_method: InitializationMethod = Random,
+                 initial_state: np.array = None):
         """
         A KMeans transformer.
 
@@ -15,12 +19,15 @@ class KMeans:
         epsilon: float
             The threshold for
 
+        initialization_method: InitializationMethod
+            The centroid initialization method (defaults to Random initialization)
+
         initial_state: np.array
-            An optional parameter to set the initial centroids of the clusters
+            An optional parameter to set the initial centroids of the clusters (defaults to None)
 
         Returns
         -------
-            A KMeans transformer
+        A KMeans transformer
         """
 
         # Define hyper parameters
@@ -34,14 +41,17 @@ class KMeans:
         self.centroids = initial_state
         self.cluster_assignment = None
 
+        # Define initialization method
+        self._initialization_method = initialization_method
+
     def _has_converged(self) -> bool:
         """
-        Determine if the K-Means algorithm has converged to a minima by considering the change in objective function
+        Determine if the KMeans algorithm has converged to a minima by considering the change in objective function
         (specifically, comparing this change to the epsilon hyperparameter).
 
         Returns
         -------
-            A boolean representing if the algorithm has converged according to the provided epsilon hyperparameter
+        A boolean representing if the algorithm has converged according to the provided epsilon hyperparameter
         """
 
         sum_of_differences = 0
@@ -54,41 +64,22 @@ class KMeans:
         # Check if the difference is small enough to consider the data converged
         return sum_of_differences <= self._epsilon
 
-    def _initialize_representatives(self):
-        """
-        Randomly initialize centroids of representatives
-        """
-
-        # Get the number of attributes represented in these data
-        num_attributes = self._data.shape[1]
-
-        # Get the minimum and maximum values for each attributes
-        data_range = (self._data.min(axis=0), self._data.max(axis=0))
-
-        # Generate a nd-array array to represent the centroids
-        self.centroids = np.zeros((self._k, num_attributes))
-
-        # Populate each centroid, with each value of the centroid being a random uniform value
-        # bounded by the minimum and maximum values for the respective attribute
-        for index, _ in enumerate(self.centroids):
-            for column in range(num_attributes):
-                self.centroids[index][column] = np.random.uniform(data_range[0][column], data_range[1][column])
-
     def fit(self, data: np.array):
         """
-        Fit K clusters to data using the K-Means algorithm.
+        Fit K clusters to data using the KMeans algorithm.
 
         Parameters
         ----------
         data: np.array
-             The data to fit clusters for
+             The data to fit clusters for to
         """
 
         self._data = data
 
         # If the representatives are not initialized, initialize them to a random state
         if self.centroids is None:
-            self._initialize_representatives()
+            self.centroids = self._initialization_method.initialize(data, self._k)
+            print(self.centroids)
 
         # Initialize the previous centroids
         self._prev_centroids = [[np.inf] * data.shape[1]] * self._k
