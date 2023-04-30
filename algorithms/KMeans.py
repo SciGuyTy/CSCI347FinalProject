@@ -17,7 +17,7 @@ class KMeans:
              The number of clusters to fit
 
         epsilon: float
-            The threshold for
+            The threshold for convergence
 
         initialization_method: InitializationMethod
             The centroid initialization method (defaults to Random initialization)
@@ -79,7 +79,6 @@ class KMeans:
         # If the representatives are not initialized, initialize them to a random state
         if self.centroids is None:
             self.centroids = self._initialization_method.initialize(data, self._k)
-            print(self.centroids)
 
         # Initialize the previous centroids
         self._prev_centroids = [[np.inf] * data.shape[1]] * self._k

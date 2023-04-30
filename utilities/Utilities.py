@@ -5,6 +5,30 @@ import numpy as np
 
 class Utilities:
     @classmethod
+    def standard_deviation(cls, x1: np.array):
+        """
+        Compute the standard deviation of a vector
+
+        Parameters
+        ----------
+        x1: np.array
+            The vector with which to compute the standard deviation for
+
+        Returns
+        -------
+        A float representing the standard deviation
+        """
+
+        # Compute sample mean
+        mean = x1.mean()
+
+        # Compute the sum of squared mean differences
+        sum_mean_difference = np.sum((x1 - mean) ** 2)
+
+        # Compute and return the standard deviation
+        return np.sqrt(sum_mean_difference / (len(x1) - 1))
+
+    @classmethod
     def lp_norm(cls, x1: np.array, p: int = 2) -> float:
         """
         Compute the L_p norm for a vector
@@ -156,7 +180,7 @@ class Utilities:
         return cluster_recall, average_precision
 
     @classmethod
-    def f_score(cls, ground_truth: np.array, predictions: np.array, beta: int = 2) -> float:
+    def f_score(cls, ground_truth: np.array, predictions: np.array, beta: int = 1) -> float:
         """
         Compute the F_beta score for a clustering
 
@@ -181,8 +205,8 @@ class Utilities:
             raise ValueError("prediction and ground_truth labels do not have the same shape")
 
         # Compute the average precision and recall for these data
-        precision = cls.precision(predictions, ground_truth)[1]
-        recall = cls.recall(predictions, ground_truth)[1]
+        precision = cls.precision(ground_truth, predictions)[1]
+        recall = cls.recall(ground_truth, predictions)[1]
 
         # Compute and return the F_beta score
         return beta * ((precision * recall) / (precision + recall))
