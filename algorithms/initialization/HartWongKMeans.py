@@ -1,9 +1,8 @@
 import numpy as np
 from algorithms.initialization.InitializationMethod import InitializationMethod
-from utilities.Utilities import Utilities
 
 
-class HartWongKmeans(InitializationMethod):
+class HartWongKMeans(InitializationMethod):
     """
     The Hartigan Wong version of KMeans will randomly assign every data point to a cluster
     and then the initialization will be the average of every assigned cluster
