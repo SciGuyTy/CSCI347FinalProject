@@ -73,7 +73,7 @@ class Utilities:
 
         Returns
         -------
-        A float representing the L_p distasnce between vectors x1 and x2
+        A float representing the L_p distance between vectors x1 and x2
         """
 
         # Validate the shape of the input vectors
@@ -90,97 +90,86 @@ class Utilities:
         return distance ** (1 / p)
 
     @classmethod
-    def precision(cls, ground_truth: np.array, predictions: np.array) -> tuple[
-        dict[int, float],
-        float
-    ]:
+    def contingency_table(cls, ground_truth: np.array, predicted: np.array) -> np.array:
+        num_true_clusters = np.max(ground_truth) + 1
+
+        # Create an empty contingency table whose dimensions are bounded by the number of ground truth clusters
+        table = np.zeros((num_true_clusters, num_true_clusters))
+
+        # Populate the table
+        for index, expected in enumerate(ground_truth):
+            predicted_class = int(predicted[index])
+
+            # Wrap in try/catch to easily handle cases when there are more predicted clusters than true clusters
+            try:
+                table[predicted_class][expected] += 1
+            except:
+                pass
+
+        return table
+
+    @classmethod
+    def precision(cls, contingency_table: np.array) -> dict[int, float]:
         """
         Compute the precision of a clustering
 
         Parameters
         ----------
-        ground_truth: np.array
-            The ground truth cluster assignment
-
-        predictions: np.array
-            The predicted cluster assignment
+        contingency_table: np.array
+            The contingency table for the clustering
 
         Returns
         -------
-        A tuple whose first element is a dictionary containing the precision for each predicted cluster, and whose
-        second element is a float representing the average precision across all predicted clusters
+        A dictionary containing the precision for each predicted cluster
         """
 
-        # Dict to store precision for each cluster
-        cluster_precisions = {}
+        # Create an empty dictionary with a space for each ground truth class
+        precision_dict = dict.fromkeys(range(np.shape(contingency_table)[0]), 0)
 
-        # Compute the precision for each cluster
-        for cluster_id in np.unique(predictions):
-            # Get the ground truth values corresponding to the points in the predicted cluster
-            predicted_points = [ground_truth[index] for index, assignment in enumerate(predictions) if
-                                assignment == cluster_id]
+        for index, predicted_cluster in enumerate(contingency_table):
+            # Get the number of predictions from the dominant class in the cluster
+            num_in_dominant = np.max(predicted_cluster)
 
-            # Get the number of points belonging to the dominant ground-truth cluster
-            num_dominant_cluster = Counter(predicted_points).most_common()[0][1]
+            # Get the number of predictions in the cluster
+            num_in_cluster = np.sum(predicted_cluster)
 
-            # Get the number of predictions in the predicted cluster
-            num_predictions = len(predicted_points)
+            # Compute cluster precision (num of dominant / num in cluster)
+            precision_dict[index] = num_in_dominant / num_in_cluster
 
-            # Compute and return the precision
-            cluster_precisions[cluster_id] = num_dominant_cluster / num_predictions
-
-        # Compute the average precision across all clusters
-        average_precision = np.average(list(cluster_precisions.values()))
-
-        return cluster_precisions, average_precision
+        return precision_dict
 
     @classmethod
-    def recall(cls, ground_truth: np.array, predictions: np.array) -> tuple[
-        dict[int, float],
-        float
-    ]:
+    def recall(cls, contingency_table: np.array) -> dict[int, float]:
         """
         Compute the recall of a clustering
 
         Parameters
         ----------
-        ground_truth: np.array
-            The ground truth cluster assignment
-
-        predictions: np.array
-            The predicted cluster assignment
+        contingency_table: np.array
+            The contingency table for the clustering
 
         Returns
         -------
-        A tuple whose first element is a dictionary containing the recall for each predicted cluster, and whose
-        second element is a float representing the average recall across all predicted clusters
+        A dictionary containing the recall for each predicted cluster
         """
 
-        # Dict to store precision for each cluster
-        cluster_recall = {}
+        # Create an empty dictionary with a space for each ground truth class
+        recall_dict = dict.fromkeys(range(np.shape(contingency_table)[0]), 0)
 
-        # Compute the precision for each cluster
-        for cluster_id in np.unique(predictions):
-            # Get the ground truth values corresponding to the points in the predicted cluster
-            predicted_points = [ground_truth[index] for index, assignment in enumerate(predictions) if
-                                assignment == cluster_id]
+        for index, predicted_cluster in enumerate(contingency_table):
+            # Get the number of predictions from the dominant class in the cluster
+            num_in_dominant = np.max(predicted_cluster)
 
-            # Get the number of predicted points belonging to the dominant ground-truth cluster
-            num_predicted_dominant_cluster = Counter(predicted_points).most_common()[0][1]
+            # Get the number of predictions in the dominant class in the true cluster
+            num_total_dominant = np.sum(contingency_table.T[np.argmax(predicted_cluster)])
 
-            # Get the number of total points belonging to the dominant ground-truth cluster
-            num_dominant_cluster = len([element for element in ground_truth if element == cluster_id])
+            # Compute cluster precision (num of dominant / num of total dominant)
+            recall_dict[index] = num_in_dominant / num_total_dominant
 
-            # Compute the recall
-            cluster_recall[cluster_id] = num_predicted_dominant_cluster / num_dominant_cluster
-
-        # Compute the average precision across all clusters
-        average_precision = np.average(list(cluster_recall.values()))
-
-        return cluster_recall, average_precision
+        return recall_dict
 
     @classmethod
-    def f_score(cls, ground_truth: np.array, predictions: np.array, beta: int = 1) -> float:
+    def f_score(cls, ground_truth: np.array, predictions: np.array, beta: int = 2) -> float:
         """
         Compute the F_beta score for a clustering
 
@@ -204,9 +193,20 @@ class Utilities:
         if predictions.shape != ground_truth.shape:
             raise ValueError("prediction and ground_truth labels do not have the same shape")
 
-        # Compute the average precision and recall for these data
-        precision = cls.precision(ground_truth, predictions)[1]
-        recall = cls.recall(ground_truth, predictions)[1]
+        # Create a contingency table for the predictions
+        contingency_table = cls.contingency_table(ground_truth, predictions)
+
+        # Compute the precision and recall for each predicted cluster
+        precision = cls.precision(contingency_table)
+        recall = cls.recall(contingency_table)
+
+        f_score = 0
+        true_classes = np.unique(ground_truth)
+
+        # Compute the F-beta score for each predicted class to compute harmonic average
+        for true_class in true_classes:
+            f_score += beta * ((precision[true_class] * recall[true_class]) / (
+                        precision[true_class] + recall[true_class]))
 
         # Compute and return the F_beta score
-        return beta * ((precision * recall) / (precision + recall))
+        return f_score / len(true_classes)
