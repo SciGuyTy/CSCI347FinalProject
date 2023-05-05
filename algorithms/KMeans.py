@@ -25,6 +25,9 @@ class KMeans:
         initial_state: np.array
             An optional parameter to set the initial centroids of the clusters (defaults to None)
 
+        is_batch_update: boolean
+            Whether to perform batch updating of cluster centroids or to update every iteration (defaults to True)
+
         Returns
         -------
         A KMeans transformer
@@ -41,9 +44,29 @@ class KMeans:
         self.centroids = initial_state
         self.cluster_assignment = None
         self._is_batch_update = is_batch_update
+        self.wss = None
 
         # Define initialization method
         self._initialization_method = initialization_method
+
+    def intertia(self) -> float:
+        """
+        Compute the inertia for the clustering
+
+        Returns
+        -------
+        A float representing the inertia
+        """
+
+        inertia = 0
+
+        for cluster_id, cluster in self._clusters.items():
+            # Compute the distance between each point in the cluster and its centroid
+            for point in cluster:
+                # Sum the square of these differences
+                inertia += Utilities.lp_distance(self.centroids[cluster_id], point[1]) ** 2
+
+        return inertia
 
     def _has_converged(self) -> bool:
         """
