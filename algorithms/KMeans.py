@@ -7,7 +7,7 @@ from algorithms.initialization.InitializationMethod import InitializationMethod
 
 class KMeans:
     def __init__(self, k: int, epsilon: float, initialization_method: InitializationMethod = Random,
-                 initial_state: np.array = None):
+                 initial_state: np.array = None, is_batch_update=True):
         """
         A KMeans transformer.
 
@@ -40,6 +40,7 @@ class KMeans:
         self._clusters = None
         self.centroids = initial_state
         self.cluster_assignment = None
+        self._is_batch_update = is_batch_update
 
         # Define initialization method
         self._initialization_method = initialization_method
@@ -63,6 +64,26 @@ class KMeans:
 
         # Check if the difference is small enough to consider the data converged
         return sum_of_differences <= self._epsilon
+    
+    def update_centroids(self):
+        """
+        Calculate new centroids based on cluster assignments
+        """
+        for cluster_id in range(self._k):
+            # Update the previous centroid to be current
+            self._prev_centroids[cluster_id] = self.centroids[cluster_id].copy()
+
+            # Get all points that have been assigned to the current cluster
+            points_in_cluster = [value for _, value in self._clusters[cluster_id]]
+
+            # Compute the new centroids
+            if len(points_in_cluster) == 0:
+                new_centroid = self._prev_centroids[cluster_id]
+            else:
+                new_centroid = np.mean(points_in_cluster, axis=0)
+
+            # Update the current centroids
+            self.centroids[cluster_id] = new_centroid
 
     def fit(self, data: np.array):
         """
@@ -98,21 +119,11 @@ class KMeans:
                 # Assign point to associated cluster
                 self._clusters[np.argmin(distances)].append((index, value))
 
-            for cluster_id in range(self._k):
-                # Update the previous centroid to be current
-                self._prev_centroids[cluster_id] = self.centroids[cluster_id].copy()
+                if not self._is_batch_update:
+                    self.update_centroids()
 
-                # Get all points that have been assigned to the current cluster
-                points_in_cluster = [value for _, value in self._clusters[cluster_id]]
-
-                # Compute the new centroids
-                if len(points_in_cluster) == 0:
-                    new_centroid = self._prev_centroids[cluster_id]
-                else:
-                    new_centroid = np.mean(points_in_cluster, axis=0)
-
-                # Update the current centroids
-                self.centroids[cluster_id] = new_centroid
+            if self._is_batch_update:
+                self.update_centroids()
 
         self.cluster_assignment = np.zeros(len(data))
 
