@@ -134,7 +134,7 @@ class Utilities:
             num_in_cluster = np.sum(predicted_cluster)
 
             # Compute cluster precision (num of dominant / num in cluster)
-            precision_dict[index] = num_in_dominant / num_in_cluster
+            precision_dict[index] = (num_in_dominant / num_in_cluster) if num_in_cluster > 0 else 0
 
         return precision_dict
 
@@ -205,8 +205,11 @@ class Utilities:
 
         # Compute the F-beta score for each predicted class to compute harmonic average
         for true_class in true_classes:
-            f_score += beta * ((precision[true_class] * recall[true_class]) / (
-                        precision[true_class] + recall[true_class]))
+            if precision[true_class] + recall[true_class] == 0:
+                f_score += 0
+            else:
+                f_score += beta * ((precision[true_class] * recall[true_class]) / (
+                            precision[true_class] + recall[true_class]))
 
         # Compute and return the F_beta score
         return f_score / len(true_classes)
