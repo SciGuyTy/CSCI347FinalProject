@@ -3,15 +3,11 @@ from algorithms.initialization.InitializationMethod import InitializationMethod
 
 
 class HartWongKMeans(InitializationMethod):
-    """
-    The Hartigan Wong version of KMeans will randomly assign every data point to a cluster
-    and then the initialization will be the average of every assigned cluster
-    """
-
     @classmethod
     def initialize(cls, data: np.array, k: int) -> np.array:
         """
-        Initialize k centroids according to the Hartigan Wong initialization algorithm
+        The Hartigan Wong initialization method which randomly assigns every data point to a cluster
+        and then the uses the mean of these assignments to define initial cluster centroids
 
         Parameters
         ----------
@@ -23,7 +19,7 @@ class HartWongKMeans(InitializationMethod):
 
         Returns
         -------
-            A numpy array containing K initialized centroids
+        A numpy array containing k initialized centroids
         """
         
         # Get the number of attributes represented in these data
